@@ -43,7 +43,11 @@ const worker = new Worker(prisma);
         name: req.body.uname
       }
     })
-    if (user !== null) {
+    if (req.body.uname.length < 8 || req.body.passwd.length < 8) {
+      res.json({
+        code: 100
+      })
+    } else if (user !== null) {
       res.status(403).json({
         code: 100
       })
