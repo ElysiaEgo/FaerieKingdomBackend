@@ -33,6 +33,7 @@ model Order {
   questId    Int
   questPhase Int
   num        Int
+  goldapple  Boolean @default(false)
   finished   Boolean @default(false)
   message    String?
   creator    User    @relation(fields: [creatorId], references: [id])

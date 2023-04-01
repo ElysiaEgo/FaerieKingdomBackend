@@ -1,27 +1,30 @@
 import { PrismaClient } from '@prisma/client'
-import express from 'express'
-import { expressjwt, type Request as JwtRequest } from 'express-jwt'
+import Koa from 'koa'
+import Router from 'koa-router'
+import json from 'koa-json'
+import koaJwt from 'koa-jwt'
+import bodyparser from 'koa-body'
 import jwt from 'jsonwebtoken'
 import GameUser from './api/user'
 import { Worker } from './executer'
 
 const prisma = new PrismaClient()
-const app = express()
+const app = new Koa()
+const router = new Router()
 const secretKey = 'FaerieKingdomByElysiaEgo@2023'
 const port = 9898
 const worker = new Worker(prisma);
 
 (async () => {
-  app.use(express.json({
-    limit: '10kb'
-  }))
+  app.use(bodyparser())
+  app.use(json())
 
-  app.use(expressjwt({
+  app.use(koaJwt({
     secret: secretKey,
     algorithms: ['HS256'],
-    getToken: (req) => {
+    getToken: (ctx) => {
       try {
-        return req.body.token
+        return ctx.request.body.token
       } catch (_) {
         return null
       }
@@ -30,77 +33,77 @@ const worker = new Worker(prisma);
     path: ['/reg', '/login']
   }))
 
-  app.use((err: any, req: any, res: any, next: any) => {
-    console.error(err.stack)
-    res.status(500).json({
-      code: 300
-    })
-  })
-
-  app.post('/reg', async (req, res) => {
+  router.post('/reg', async (ctx) => {
     const user = await prisma.user.findUnique({
       where: {
-        name: req.body.uname
+        name: ctx.request.body.uname
       }
     })
-    if (req.body.uname.length < 8 || req.body.passwd.length < 8) {
-      res.json({
+    if (ctx.request.body.uname.length < 8 || ctx.request.body.passwd.length < 8) {
+      ctx.type = 'json'
+      ctx.body = {
         code: 100
-      })
+      }
     } else if (user !== null) {
-      res.status(403).json({
+      ctx.type = 'json'
+      ctx.body = {
         code: 100
-      })
+      }
     } else {
       await prisma.user.create({
         data: {
-          name: req.body.uname,
-          password: req.body.passwd
+          name: ctx.request.body.uname,
+          password: ctx.request.body.passwd
         }
       })
-      res.json({
+      ctx.type = 'json'
+      ctx.body = {
         code: 0
-      })
+      }
     }
-  }).post('/login', async (req, res) => {
+  }).post('/login', async (ctx) => {
     const user = await prisma.user.findUnique({
       where: {
-        name: req.body.uname
+        name: ctx.request.body.uname
       }
     })
-    if (user === null || user.password !== req.body.passwd) {
-      res.status(403).json({
+    if (user === null || user.password !== ctx.request.body.passwd) {
+      ctx.response.status = 403
+      ctx.type = 'type'
+      ctx.body = {
         code: 100,
         token: '',
         userid: 0
-      })
+      }
     } else {
       const token = jwt.sign({
         id: user.id,
         name: user.name,
         pass: user.password
       }, secretKey, { expiresIn: '1d' })
-      res.json({
+      ctx.type = 'type'
+      ctx.body = {
         code: 0,
         token,
         userid: user.id
-      })
+      }
     }
   })
 
-  app.post('/bili_login', async (req: JwtRequest, res) => {
+  router.post('/bili_login', async (ctx) => {
     const acco = await prisma.biliAcco.findUnique({
       where: {
-        biliName: req.body.biliname
+        biliName: ctx.request.body.biliname
       }
     })
     if (acco !== null) {
-      res.json({
+      ctx.type = 'json'
+      ctx.body = {
         code: 200
-      })
+      }
       return
     }
-    const player = new GameUser(req.body.biliname, req.body.bilipass)
+    const player = new GameUser(ctx.request.body.biliname, ctx.request.body.bilipass)
     await player.getSdkCipher().then(async (_) => {
       return await player.SdkLoginPassword()
     }).then(async (_) => {
@@ -112,35 +115,38 @@ const worker = new Worker(prisma);
     }).then(async (_) => {
       await prisma.user.update({
         where: {
-          id: req.auth?.id
+          id: ctx.state.user?.id
         },
         data: {
           biliAccos: {
             create: {
-              biliName: req.body.biliname,
-              biliPass: req.body.bilipass,
+              biliName: ctx.request.body.biliname,
+              biliPass: ctx.request.body.bilipass,
               biliId: player.userId.toString()
             }
           }
         }
       })
-      res.json({
+      ctx.type = 'json'
+      ctx.body = {
         code: 0
-      })
+      }
     }).catch((_) => {
-      res.json({
+      ctx.type = 'json'
+      ctx.body = {
         code: 200
-      })
+      }
     })
   })
 
-  app.post('/profile', async (req: JwtRequest, res) => {
+  router.post('/profile', async (ctx) => {
     const biliAccos = await prisma.user.findUnique({
       where: {
-        id: req.auth?.id
+        id: ctx.state.user?.id
       }
     }).biliAccos()
-    res.json({
+    ctx.type = 'json'
+    ctx.body = {
       code: 0,
       biliAccos: biliAccos?.map((value) => {
         return {
@@ -148,17 +154,17 @@ const worker = new Worker(prisma);
           id: value.biliId.toString()
         }
       })
-    })
+    }
   })
 
-  app.post('/getQuest', async (req: JwtRequest, res) => {
+  router.post('/getQuest', async (ctx) => {
     const biliAcco = await prisma.user.findUnique({
       where: {
-        id: req.auth?.id
+        id: ctx.state.user?.id
       }
     }).biliAccos({
       where: {
-        biliId: req.body.biliId.toString()
+        biliId: ctx.request.body.biliId.toString()
       }
     })
     if (biliAcco === null) return
@@ -168,7 +174,7 @@ const worker = new Worker(prisma);
     await player.loginToMemberCenter()
     await player.loginPhp()
     const loginResult = await player.topLogin()
-    res.json({
+    ctx.body = {
       code: 0,
       quests: loginResult.cache.replaced.userQuest.map((value: { questId: string, questPhase: string, challengeNum: string }) => {
         return {
@@ -177,27 +183,28 @@ const worker = new Worker(prisma);
           challengeNum: value.challengeNum
         }
       })
-    })
+    }
   })
 
-  app.post('/order', async (req: JwtRequest, res) => {
+  router.post('/order', async (ctx) => {
     const user = await prisma.user.findUnique({
       where: {
-        id: req.auth?.id
+        id: ctx.state.user?.id
       }
     })
     const biliAcco = await prisma.biliAcco.findUnique({
       where: {
-        biliId: req.body.biliId.toString()
+        biliId: ctx.request.body.biliId.toString()
       }
     })
     if (user === null || biliAcco === null) return
     const order = await prisma.order.create({
       data: {
-        questId: req.body.questId,
-        questPhase: req.body.questPhase,
-        num: req.body.num,
+        questId: ctx.request.body.questId,
+        questPhase: ctx.request.body.questPhase,
+        num: ctx.request.body.num,
         biliId: biliAcco.biliId.toString(),
+        goldapple: ctx.request.body.goldapple,
         creator: {
           connect: {
             id: user.id
@@ -206,16 +213,17 @@ const worker = new Worker(prisma);
       }
     })
     void worker.add(new GameUser(biliAcco.biliName, biliAcco.biliPass), order)
-    res.json({
+    ctx.type = 'json'
+    ctx.body = {
       code: 0
-    })
-  }).post('/query', async (req: JwtRequest, res) => {
+    }
+  }).post('/query', async (ctx) => {
     const orders = await prisma.user.findUnique({
       where: {
-        id: req.auth?.id
+        id: ctx.state.user?.id
       }
     }).orders()
-    res.json({
+    ctx.body = {
       code: 0,
       orders: orders?.map((value) => {
         return {
@@ -227,12 +235,26 @@ const worker = new Worker(prisma);
           biliId: value.biliId
         }
       })
+    }
+  })
+
+  app.use(router.routes())
+  app.use(router.allowedMethods())
+
+  app.use(async (ctx, next) => {
+    return await next().catch((err) => {
+      if (err.status === 401) {
+        ctx.status = 401
+        ctx.body = 'Protected resource, check your authorization\n'
+      } else {
+        throw err
+      }
     })
   })
 
   app.listen(port, () => {
-    console.log('FaerieKingdom V0.2.1')
-    console.log('Powered by Express & Vue')
+    console.log('FaerieKingdom V0.2.2')
+    console.log('Powered by Koa & Vue')
   })
 })().then(async () => {
   await prisma.$disconnect()
