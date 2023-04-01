@@ -212,7 +212,10 @@ const worker = new Worker(prisma);
         }
       }
     })
-    void worker.add(new GameUser(biliAcco.biliName, biliAcco.biliPass), order)
+    void worker.addLoop(new GameUser(biliAcco.biliName, biliAcco.biliPass), order).catch((reason) => {
+      console.log(`${order.biliId}'s order ${order.id} error`)
+      console.log(reason)
+    })
     ctx.type = 'json'
     ctx.body = {
       code: 0

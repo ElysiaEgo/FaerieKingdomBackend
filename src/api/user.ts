@@ -272,6 +272,14 @@ export default class GameUser {
     return await this.post(this.urls.getAction('battleresult'), this.addActionField(dic, 'battleresult')).then(this.updateUsk.bind(this))
   }
 
+  public async itemrecover (recoverId: number, num: number): Promise<StandardResponse> {
+    const dic: Record<string, string> = {
+      recoverId: recoverId.toString(),
+      num: num.toString()
+    }
+    return await this.post(this.urls.getAction('itemrecover'), this.addActionField(dic, 'itemrecover')).then(this.updateUsk.bind(this))
+  }
+
   private updateUsk (value: StandardResponse): StandardResponse {
     this.usk = encryptMd5Usk(value.response[0].usk)
     return value
