@@ -1,5 +1,24 @@
 import { type PrismaClient, type Order } from '@prisma/client'
 import type GameUser from '../api/user'
+import * as log4js from 'log4js'
+
+log4js.configure({
+  appenders: {
+    executer: {
+      type: 'file',
+      filename: 'executor.log'
+    }
+  },
+  categories: {
+    default: {
+      appenders: ['executer'],
+      level: 'debug'
+    }
+  }
+})
+
+const logger = log4js.getLogger()
+logger.level = 'debug'
 
 async function sleep (time: number): Promise<void> {
   await new Promise((resolve) => {
@@ -15,7 +34,6 @@ interface Executer {
 abstract class BaseExecuter {
   protected user!: GameUser
   protected deckId = 0
-  protected ap = 0
 
   async setup (): Promise<void> {
     await this.user.getSdkCipher()
@@ -24,14 +42,6 @@ abstract class BaseExecuter {
     await this.user.loginPhp()
     const loginInfo = await this.user.topLogin()
     this.deckId = parseInt(loginInfo.cache.replaced.userDeck[0].id)
-    const actMax = parseInt(loginInfo.cache.replaced.userGame[0].actMax)
-    const recoverAt = parseInt(loginInfo.cache.replaced.userGame[0].actRecoverAt)
-    this.updateAp(actMax, recoverAt)
-  }
-
-  updateAp (max: number, recoverAt: number): void {
-    const now = Math.floor(new Date().getTime() / 1000)
-    this.ap = max - Math.ceil((recoverAt - now) / 3600 / 5)
   }
 
   abstract work (): Promise<void>
@@ -45,12 +55,12 @@ export class Worker {
   }
 
   async addLoop (user: GameUser, order: Order): Promise<void> {
-    const loopExec = new LoopExecuter(user, order.questId, order.questPhase, order.num, order.goldapple)
+    const loopExec = new LoopExecuter(user, order.questId, order.questPhase, order.num, [order.goldapple, order.silverapple, order.copperapple, order.bronzeapple])
     await loopExec.setup()
     const loc = this.executers.push(loopExec) - 1
     void loopExec.work().then(async (_) => {
       this.executers.splice(loc, 1)
-      console.log(`${order.biliId}'s order ${order.id} finished`)
+      logger.debug(`${order.biliId}'s order ${order.id} finished`)
       return await this.db.order.update({
         where: {
           id: order.id
@@ -61,8 +71,8 @@ export class Worker {
         }
       })
     }).catch(async (reason) => {
-      console.log(`${order.biliId}'s order ${order.id} error`)
-      console.log(reason)
+      logger.debug(`${order.biliId}'s order ${order.id} error`)
+      logger.debug(reason)
       return await this.db.order.update({
         where: {
           id: order.id
@@ -80,16 +90,16 @@ export class LoopExecuter extends BaseExecuter implements Executer {
   private readonly questId: number
   private readonly questPhase: number
   private readonly num: number
-  private readonly goldApple: boolean
+  private readonly useApple: boolean[]
   private executed: number = 0
 
-  constructor (user: GameUser, questId: number, questPhase: number, num: number, goldApple: boolean) {
+  constructor (user: GameUser, questId: number, questPhase: number, num: number, useApple: boolean[]) {
     super()
     this.user = user
     this.questId = questId
     this.questPhase = questPhase
     this.num = num
-    this.goldApple = goldApple
+    this.useApple = useApple
   }
 
   async work (): Promise<void> {
@@ -98,24 +108,25 @@ export class LoopExecuter extends BaseExecuter implements Executer {
       const followerId = parseInt(followerList.cache.updated.userFollower[0].followerInfo[0].userSvtLeaderHash[0].userId)
       const followerClassId = parseInt(followerList.cache.updated.userFollower[0].followerInfo[0].userSvtLeaderHash[0].classId)
       let battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId)
-      if (battleSetup.response[0].fail.detail !== undefined && (battleSetup.response[0].fail.detail as string).includes('AP')) {
-        if (this.goldApple) {
-          // gola apple for 1
-          await this.user.itemrecover(2, 1)
-          battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId)
-        } else {
-          console.log(`${this.user.userId} cannot setup battle because of lack of AP`)
-          throw new Error('not enough AP')
+      while (battleSetup.response[0].fail.detail !== undefined && (battleSetup.response[0].fail.detail as string).includes('AP')) {
+        for (let i = 0; i < this.useApple.length; i++) {
+          if (this.useApple[i]) {
+            const recover = await this.user.itemrecover(i + 2, 1)
+            console.dir(recover, { depth: null })
+            logger.debug(`${this.user.userId} recover AP with ${i + 2}`)
+          }
+        }
+        battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId)
+        if (battleSetup.response[0].fail.detail !== undefined) {
+          logger.debug(`${this.user.userId} cannot setup battle`)
+          throw new Error(battleSetup.response[0].fail.detail)
         }
       }
-      const actMax = parseInt(battleSetup.cache.updated.userGame[0].actMax)
-      const recoverAt = parseInt(battleSetup.cache.updated.userGame[0].actRecoverAt)
-      this.updateAp(actMax, recoverAt)
       const battleId = parseInt(battleSetup.cache.replaced.battle[0].id)
-      console.log(`${this.user.userId} setup battle ${battleId}`)
+      logger.debug(`${this.user.userId} setup battle ${battleId}`)
       await sleep(10000)
       await this.user.battleresult(battleId)
-      console.log(`${this.user.userId} finish battle ${battleId}`)
+      logger.debug(`${this.user.userId} finish battle ${battleId}`)
     }
   }
 }

@@ -23,6 +23,7 @@ model BiliAcco {
   biliName String @unique
   biliPass String
   biliId   String @unique
+  isIOS    Boolean @default(false)
   Owner     User?  @relation(fields: [ownerId], references: [id])
   ownerId   Int
 }
@@ -34,6 +35,9 @@ model Order {
   questPhase Int
   num        Int
   goldapple  Boolean @default(false)
+  silverapple Boolean @default(false)
+  copperapple Boolean @default(false)
+  bronzeapple Boolean @default(false)
   finished   Boolean @default(false)
   message    String?
   creator    User    @relation(fields: [creatorId], references: [id])

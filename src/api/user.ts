@@ -33,16 +33,19 @@ export default class GameUser {
   private readonly sgtag: number = 0
   private usk: string = ''
   private accessToken = ''
-  private dateVer = 707
-  private dataVer = 707
+  private dateVer = 711
+  private dataVer = 711
+  private readonly isIOS: boolean
   private hash = ''
   private cipherKey = ''
 
-  private readonly urls = new Urls()
+  private readonly urls: Urls
 
-  constructor (acc: string, pwd: string) {
+  constructor (acc: string, pwd: string, isIOS = false) {
     this.account = acc
     this.password = pwd
+    this.isIOS = isIOS
+    this.urls = new Urls(isIOS)
   }
 
   public async getSdkCipher (): Promise<any> {
@@ -143,9 +146,10 @@ export default class GameUser {
       type: 'token',
       rkuid: this.rkuid.toString(),
       access_token: this.accessToken,
-      rkchannel: '24',
+      rkchannel: this.isIOS ? '996' : '24',
       cPlat: '3',
-      uPlat: '3'
+      uPlat: this.isIOS ? '2' : '3',
+      version: this.dataVer.toString()
     }
     return await this.post(this.urls.getLoginToMemberCenter(), this.addCommonField(dic)).then((value) => {
       this.usk = value.response[0].usk
@@ -168,7 +172,7 @@ export default class GameUser {
       imei: '',
       type: 'login',
       nickname: '',
-      rkchannel: '24',
+      rkchannel: this.isIOS ? '996' : '24',
       cPlat: '3',
       uPlat: '3',
       assetbundleFolder: '',
@@ -322,7 +326,7 @@ export default class GameUser {
     dic.rgsid = '1001'
     dic.rkchannel = '24'
     dic.cPlat = '3'
-    dic.uPlat = '3'
+    dic.uPlat = this.isIOS ? '2' : '3'
     return dic
   }
 
@@ -330,7 +334,7 @@ export default class GameUser {
     dic.deviceid = ''
     dic.os = ''
 
-    dic.ptype = 'motorola XT2153-1'
+    dic.ptype = ''
     dic.userAgent = '1'
     dic.userId = this.userId.toString()
     dic.appVer = '2.57.0'

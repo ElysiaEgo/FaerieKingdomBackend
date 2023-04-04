@@ -2,7 +2,15 @@ import util from 'util'
 
 export default class Urls {
   private userId = 0
-  private host = 'line1-s2-bili-fate.bilibiligame.net'
+  private host: string
+  private readonly isIOS: boolean
+
+  constructor (isIOS: boolean) {
+    this.isIOS = isIOS
+    this.host = isIOS
+      ? 'line1-s2-ios-fate.bilibiligame.net'
+      : 'line1-s2-bili-fate.bilibiligame.net'
+  }
 
   setUserId (userId: number): void {
     this.userId = userId

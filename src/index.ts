@@ -103,12 +103,12 @@ const worker = new Worker(prisma);
       }
       return
     }
-    const player = new GameUser(ctx.request.body.biliname, ctx.request.body.bilipass)
+    const player = new GameUser(ctx.request.body.biliname, ctx.request.body.bilipass, ctx.request.body.isios)
     await player.getSdkCipher().then(async (_) => {
       return await player.SdkLoginPassword()
     }).then(async (_) => {
       return await player.loginToMemberCenter()
-    }).then(async (_) => {
+    }).then(async (value) => {
       return await player.loginPhp()
     }).then(async (_) => {
       return await player.home()
@@ -122,7 +122,8 @@ const worker = new Worker(prisma);
             create: {
               biliName: ctx.request.body.biliname,
               biliPass: ctx.request.body.bilipass,
-              biliId: player.userId.toString()
+              biliId: player.userId.toString(),
+              isIOS: ctx.request.body.isios
             }
           }
         }
@@ -151,7 +152,8 @@ const worker = new Worker(prisma);
       biliAccos: biliAccos?.map((value) => {
         return {
           name: value.biliName,
-          id: value.biliId.toString()
+          id: value.biliId.toString(),
+          isios: value.isIOS
         }
       })
     }
@@ -204,7 +206,10 @@ const worker = new Worker(prisma);
         questPhase: ctx.request.body.questPhase,
         num: ctx.request.body.num,
         biliId: biliAcco.biliId.toString(),
-        goldapple: ctx.request.body.goldapple,
+        goldapple: ctx.request.body.useApple[0],
+        silverapple: ctx.request.body.useApple[1],
+        copperapple: ctx.request.body.useApple[2],
+        bronzeapple: ctx.request.body.useApple[3],
         creator: {
           connect: {
             id: user.id
