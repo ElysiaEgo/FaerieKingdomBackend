@@ -108,15 +108,15 @@ export class LoopExecuter extends BaseExecuter implements Executer {
       const followerId = parseInt(followerList.cache.updated.userFollower[0].followerInfo[0].userSvtLeaderHash[0].userId)
       const followerClassId = parseInt(followerList.cache.updated.userFollower[0].followerInfo[0].userSvtLeaderHash[0].classId)
       let battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId)
-      while (battleSetup.response[0].fail.detail !== undefined && (battleSetup.response[0].fail.detail as string).includes('AP')) {
+      if (battleSetup.response[0].fail.detail !== undefined && (battleSetup.response[0].fail.detail as string).includes('AP')) {
         for (let i = 0; i < this.useApple.length; i++) {
           if (this.useApple[i]) {
-            const recover = await this.user.itemrecover(i + 2, 1)
-            console.dir(recover, { depth: null })
+            await this.user.itemrecover(i + 2, 1)
             logger.debug(`${this.user.userId} recover AP with ${i + 2}`)
+            battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId)
+            if (battleSetup.response[0].fail.detail === undefined || !(battleSetup.response[0].fail.detail as string).includes('AP')) break
           }
         }
-        battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId)
       }
       if (battleSetup.response[0].fail.detail !== undefined) {
         logger.debug(`${this.user.userId} cannot setup battle`)
