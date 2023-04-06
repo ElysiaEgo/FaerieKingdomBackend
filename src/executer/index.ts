@@ -117,10 +117,10 @@ export class LoopExecuter extends BaseExecuter implements Executer {
           }
         }
         battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId)
-        if (battleSetup.response[0].fail.detail !== undefined) {
-          logger.debug(`${this.user.userId} cannot setup battle`)
-          throw new Error(battleSetup.response[0].fail.detail)
-        }
+      }
+      if (battleSetup.response[0].fail.detail !== undefined) {
+        logger.debug(`${this.user.userId} cannot setup battle`)
+        throw new Error(battleSetup.response[0].fail.detail)
       }
       const battleId = parseInt(battleSetup.cache.replaced.battle[0].id)
       logger.debug(`${this.user.userId} setup battle ${battleId}`)
