@@ -1,4 +1,4 @@
-import GameUser from './api/user'
+import GameUser from './gameApi/user'
 import fs from 'fs'
 
 try {

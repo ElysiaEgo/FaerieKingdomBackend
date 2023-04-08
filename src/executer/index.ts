@@ -1,5 +1,5 @@
 import { type PrismaClient, type Order } from '@prisma/client'
-import type GameUser from '../api/user'
+import type GameUser from '../gameApi/user'
 import * as log4js from 'log4js'
 
 log4js.configure({
