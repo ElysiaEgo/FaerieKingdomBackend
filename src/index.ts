@@ -6,8 +6,32 @@ import koaJwt from 'koa-jwt'
 import bodyparser from 'koa-body'
 import { ApiFactory } from './webApi'
 import dotenv from 'dotenv'
+import * as log4js from 'log4js'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
+
+log4js.configure({
+  appenders: {
+    executer: {
+      type: 'file',
+      filename: 'executor.log'
+    },
+    worker: {
+      type: 'file',
+      filename: 'worker.log'
+    }
+  },
+  categories: {
+    default: {
+      appenders: ['executer'],
+      level: 'debug'
+    },
+    worker: {
+      appenders: ['worker'],
+      level: 'debug'
+    }
+  }
+});
 
 (async () => {
   const env = dotenv.config()
@@ -45,7 +69,7 @@ const prisma = new PrismaClient();
 
   router.post('/profile', api.Profile.handle)
 
-  router.post('/getQuest', api.GetQuest.handle)
+  // router.post('/getQuest', api.GetQuest.handle)
 
   router.post('/newOrder', api.NewOrder.handle)
   router.post('/queryOrder', api.QueryOrder.handle)

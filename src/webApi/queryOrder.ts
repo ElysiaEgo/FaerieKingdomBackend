@@ -11,6 +11,7 @@ export class QueryOrderApi extends BaseWebApi {
     this.resp(ctx, {
       orders: orders?.map((value) => {
         return {
+          id: value.id,
           finish: value.finished,
           questId: value.questId,
           questPhase: value.questPhase,

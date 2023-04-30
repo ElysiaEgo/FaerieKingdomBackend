@@ -19,27 +19,33 @@ model User {
 }
 
 model BiliAcco {
-  id       Int    @id @default(autoincrement())
-  biliName String @unique
+  id       Int     @id @default(autoincrement())
+  biliName String  @unique
   biliPass String
-  biliId   String @unique
+  biliId   String  @unique
   isIOS    Boolean @default(false)
-  Owner     User?  @relation(fields: [ownerId], references: [id])
-  ownerId   Int
+  Owner    User?   @relation(fields: [ownerId], references: [id])
+  ownerId  Int
 }
 
 model Order {
-  id         Int     @id @default(autoincrement())
-  biliId     String
-  questId    Int
-  questPhase Int
-  num        Int
-  goldapple  Boolean @default(false)
+  id          Int     @id @default(autoincrement())
+  biliId      String
+  questId     Int
+  questPhase  Int
+  num         Int
+  goldapple   Boolean @default(false)
   silverapple Boolean @default(false)
   copperapple Boolean @default(false)
   bronzeapple Boolean @default(false)
-  finished   Boolean @default(false)
-  message    String?
-  creator    User    @relation(fields: [creatorId], references: [id])
-  creatorId  Int
+  finished    Boolean @default(false)
+  // 0: not started
+  // 1: processing
+  // 2: finished
+  // 3: error
+  status      Int     @default(0)
+  progress    Float   @default(0)
+  message     String?
+  creator     User    @relation(fields: [creatorId], references: [id])
+  creatorId   Int
 }

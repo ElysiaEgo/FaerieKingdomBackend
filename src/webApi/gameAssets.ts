@@ -4,10 +4,11 @@ import fs from 'fs'
 import path from 'path'
 
 const assets = new Map<string, string>()
-fs.readdirSync(path.join(__dirname, '../gameAssets')).forEach((value) => {
+const gameAssetsPath = '../gameAssets/dump'
+fs.readdirSync(path.join(__dirname, gameAssetsPath)).forEach((value) => {
   if (value.endsWith('.json')) {
-    // serializing to minify response
-    assets.set(value.replace('.json', ''), JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname, '../gameAssets', value)).toString())))
+    // re-serializing to minify response
+    assets.set(value.replace('.json', '').replace('.json', 'Entity'), JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname, gameAssetsPath, value)).toString())))
   }
 })
 

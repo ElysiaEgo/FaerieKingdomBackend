@@ -1,7 +1,7 @@
 import { type ParameterizedContext } from 'koa'
 import BaseWebApi from './base'
 import GameUser from '../gameApi/user'
-import { Worker } from '../executer'
+import { Worker } from '../executer/worker'
 import { type PrismaClient } from '@prisma/client'
 
 export class NewOrderApi extends BaseWebApi {
