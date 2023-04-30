@@ -4,6 +4,11 @@
   "main": "index.js",
   "author": "elysiaEgo",
   "license": "MIT",
+  "scripts": {
+    "build": "prisma format && prisma generate && prisma migrate dev && tsc",
+    "watch": "concurrently \"prisma generate --watch\" \"tsc --watch\" \"nodemon ./build/index.js\"",
+    "serve": "node ./build/index.js"
+  },
   "devDependencies": {
     "@types/crypto-js": "^4.1.1",
     "@types/jsonwebtoken": "^9.0.1",
@@ -14,6 +19,7 @@
     "@types/node": "^18.14.6",
     "@types/uuid": "^9.0.1",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "concurrently": "^8.0.1",
     "eslint": "^8.0.1",
     "eslint-config-standard-with-typescript": "^34.0.0",
     "eslint-plugin-import": "^2.25.2",
