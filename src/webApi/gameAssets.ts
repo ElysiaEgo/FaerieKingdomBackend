@@ -8,7 +8,7 @@ const gameAssetsPath = '../gameAssets/dump'
 fs.readdirSync(path.join(__dirname, gameAssetsPath)).forEach((value) => {
   if (value.endsWith('.json')) {
     // re-serializing to minify response
-    assets.set(value.replace('.json', '').replace('.json', 'Entity'), JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname, gameAssetsPath, value)).toString())))
+    assets.set(value.replace('.json', '').replace('Entity', ''), JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname, gameAssetsPath, value)).toString())))
   }
 })
 
