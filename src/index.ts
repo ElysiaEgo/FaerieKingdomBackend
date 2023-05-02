@@ -7,6 +7,7 @@ import bodyparser from 'koa-body'
 import { ApiFactory } from './webApi'
 import dotenv from 'dotenv'
 import * as log4js from 'log4js'
+import cors from '@koa/cors'
 
 const prisma = new PrismaClient()
 
@@ -45,6 +46,14 @@ log4js.configure({
 
   app.use(bodyparser())
   app.use(json())
+  app.use(cors({
+    origin: (ctx) => {
+      if (ctx.url.startsWith('https://fate.elysiaego.top')) {
+        return 'https://fate.elysiaego.top'
+      }
+      return 'https://beta.elysiaego.top'
+    }
+  }))
 
   app.use(koaJwt({
     secret: secretKey,
