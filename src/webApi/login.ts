@@ -32,7 +32,8 @@ export class LoginApi extends BaseWebApi {
       }, SECRET_KEY, { expiresIn: '1d' })
       this.resp(ctx, {
         token,
-        userid: user.id
+        userid: user.id,
+        expires: 86400000
       })
     }
   }
