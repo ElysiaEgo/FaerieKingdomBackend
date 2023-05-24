@@ -4,8 +4,13 @@ import axios, { type AxiosError } from 'axios'
 import qs from 'querystring'
 import Urls from './urls'
 import crc32 from 'crc-32'
+import dotenv from 'dotenv'
+import * as log4js from 'log4js'
 
-interface StandardResponse {
+const env = dotenv.config()
+const logger = log4js.getLogger('request')
+
+export interface StandardResponse {
   response: Array<{
     resCode: string
     success: any
@@ -21,6 +26,29 @@ interface StandardResponse {
   sign: string
 }
 
+/**
+ * 1. GameUser is the class that stores all user data.
+ * 2. GameUser has 9 private properties:
+ *    - account: string
+ *    - password: string
+ *    - userId: number
+ *    - nickname: string
+ *    - rguid: number
+ *    - rkuid: number
+ *    - rgusk: string
+ *    - sgtag: number
+ *    - usk: string
+ *    - accessToken: string
+ *    - dateVer: number
+ *    - dataVer: number
+ *    - isIOS: boolean
+ *    - hash: string
+ *    - cipherKey: string
+ * 4. GameUser has 1 private property:
+ *    - urls: Urls
+ * 5. GameUser has 1 constructor:
+ *    - constructor (acc: string, pwd: string, isIOS = false): GameUser
+ */
 export default class GameUser {
   private readonly account: string
   private readonly password: string
@@ -201,16 +229,16 @@ export default class GameUser {
     return await this.post(this.urls.getAction('home'), this.addActionField(dic, 'home')).then(this.updateUsk.bind(this))
   }
 
-  public async followerlist (questId: number): Promise<StandardResponse> {
+  public async followerlist (questId: number, questPhase = 1): Promise<StandardResponse> {
     const dic: Record<string, string> = {
       questId: questId.toString(),
-      questPhase: '1',
+      questPhase: questPhase.toString(),
       refresh: ''
     }
     return await this.post(this.urls.getAction('followerlist'), this.addActionField(dic, 'followerlist')).then(this.updateUsk.bind(this))
   }
 
-  public async battlesetup (questId: number, questPhase: number, deckId: number, followerId: number, followerClassId: number): Promise<StandardResponse> {
+  public async battlesetup (questId: number, questPhase: number, deckId: number, followerId: number, followerClassId: number, followerSupportDeckId: number): Promise<StandardResponse> {
     const dic: Record<string, string> = {
       activeDeckId: deckId.toString(),
       followerId: followerId.toString(),
@@ -226,7 +254,7 @@ export default class GameUser {
       questSelect: '0',
       followerType: '1',
       followerRandomLimitCount: '0',
-      followerSupportDeckId: '1',
+      followerSupportDeckId: followerSupportDeckId.toString(),
       campaignItemId: '0'
     }
     return await this.post(this.urls.getAction('battlesetup'), this.addActionField(dic, 'battlesetup')).then(this.updateUsk.bind(this))
@@ -290,6 +318,9 @@ export default class GameUser {
   }
 
   private async post (url: string, data: Record<string, string>): Promise<StandardResponse> {
+    if (env.parsed?.DEBUG === 'true') {
+      logger.debug(JSON.stringify(data, null, 2))
+    }
     return await axios({
       method: 'POST',
       url,
@@ -305,7 +336,11 @@ export default class GameUser {
   }
 
   private parseResp (resp: string): any {
-    return JSON.parse(Buffer.from(decodeURIComponent(resp), 'base64').toString('utf-8'))
+    const result = JSON.parse(Buffer.from(decodeURIComponent(resp), 'base64').toString('utf-8'))
+    if (env.parsed?.DEBUG === 'true') {
+      logger.debug(JSON.stringify(result, null, 2))
+    }
+    return result
   }
 
   private addActionField (dic: Record<string, string>, key: string): Record<string, string> {

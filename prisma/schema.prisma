@@ -34,6 +34,10 @@ model Order {
   questId     Int
   questPhase  Int
   num         Int
+  type        Int     @default(0)
+  // 0: loop
+  // 1: material
+  itemId      Int     @default(0)
   goldapple   Boolean @default(false)
   silverapple Boolean @default(false)
   copperapple Boolean @default(false)

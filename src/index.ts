@@ -20,6 +20,10 @@ log4js.configure({
     worker: {
       type: 'file',
       filename: 'worker.log'
+    },
+    request: {
+      type: 'file',
+      filename: 'request.log'
     }
   },
   categories: {
@@ -29,6 +33,10 @@ log4js.configure({
     },
     worker: {
       appenders: ['worker'],
+      level: 'debug'
+    },
+    request: {
+      appenders: ['request'],
       level: 'debug'
     }
   }
@@ -40,9 +48,8 @@ log4js.configure({
   const app = new Koa()
   const router = new Router()
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const secretKey = env.parsed!.JWT_SECRETKEY
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const port = parseInt(env.parsed!.PORT)
+  const secretKey = env.parsed!.JWT_SECRETKEY // secretkey must be set
+  const port = parseInt(env.parsed?.PORT ?? '9898')
 
   app.use(bodyparser())
   app.use(json())

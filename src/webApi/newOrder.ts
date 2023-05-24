@@ -28,6 +28,8 @@ export class NewOrderApi extends BaseWebApi {
         questId: ctx.request.body.questId,
         questPhase: ctx.request.body.questPhase,
         num: ctx.request.body.num,
+        type: ctx.request.body.type,
+        itemId: ctx.request.body.itemId,
         biliId: biliAcco.biliId.toString(),
         goldapple: ctx.request.body.useApple[0],
         silverapple: ctx.request.body.useApple[1],
@@ -40,7 +42,19 @@ export class NewOrderApi extends BaseWebApi {
         }
       }
     })
-    void this.worker.addLoop(new GameUser(biliAcco.biliName, biliAcco.biliPass), order).catch((reason) => {
+    let ord: Promise<void> | undefined
+    if (ctx.request.body.type === 0) {
+      ord = this.worker.addLoop(new GameUser(biliAcco.biliName, biliAcco.biliPass), order)
+    } else if (ctx.request.body.type === 1) {
+      ord = this.worker.addMaterial(new GameUser(biliAcco.biliName, biliAcco.biliPass), order)
+    } else {
+      this.resp(ctx, {}, {
+        code: 100,
+        message: 'not supported type'
+      })
+      return
+    }
+    ord?.catch((reason) => {
       console.log(`${order.biliId}'s order ${order.id} error`)
       console.log(reason)
     })

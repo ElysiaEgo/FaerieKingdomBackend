@@ -3,67 +3,56 @@ import type GameUser from '../gameApi/user'
 import { BaseExecuter, sleep } from './base'
 import { type StandardResponse } from '../gameApi/user'
 
+// provide comments for MaterialExecuter with comprasion with loopExecuter
+
 /**
- * 1. LoopExecuter is a class that extends BaseExecuter.
- * 2. LoopExecuter has 4 private properties:
+ * 1. MaterialExecuter is a class that extends BaseExecuter.
+ * 2. MaterialExecuter has 5 private properties:
  *    - questId: number
  *    - questPhase: number
  *    - num: number
  *    - useApple: boolean[]
- * 3. LoopExecuter has 1 private property:
- *    - executed: number
- * 4. LoopExecuter has 1 constructor:
+ *    - itemId: number
+ * 3. MaterialExecuter has 1 private property:
+ *    - gained: number
+ * 4. MaterialExecuter has 1 constructor:
  *    - constructor (user: GameUser, order: Order)
- * 5. LoopExecuter has 1 async method:
+ * 5. MaterialExecuter has 1 method:
  *    - work: () => Promise<void>
- * 6. LoopExecuter has 3 private async methods:
- *    - getFollower: () => Promise<{
- *        followerId: number
- *        followerClassId: number
- *        followerSupportDeckId: number
- *      }>
- *    - setupBattle: (followerId: number, followerClassId: number, followerSupportDeckId: number) => Promise<StandardResponse>
- *    - finishBattle: (battleSetup: StandardResponse) => Promise<StandardResponse>
  */
-export class LoopExecuter extends BaseExecuter {
+export class MaterialExecuter extends BaseExecuter {
   private readonly questId: number
   private readonly questPhase: number
   private readonly num: number
   private readonly useApple: boolean[]
-  private executed: number = 0
+  private readonly itemId: number
+  private gained: number = 0
 
   constructor (user: GameUser, order: Order) {
     super(user, order)
     this.questId = order.questId
     this.questPhase = order.questPhase
     this.num = order.num
+    this.itemId = order.itemId
     this.useApple = [order.goldapple, order.silverapple, order.copperapple, order.bronzeapple]
   }
 
-  /**
-   * 1. LoopExecuter.work() is an async function.
-   * 2. LoopExecuter.work() has no parameter.
-   * 3. LoopExecuter.work() will return a Promise that will be resolved after all battles are finished.
-   * 4. LoopExecuter.work() will do the following things:
-   *    - Get followerId, followerClassId, followerSupportDeckId.
-   *    - Setup battle with followerId, followerClassId, followerSupportDeckId.
-   *    - Finish battle.
-   * @returns A Promise that will be resolved after all battles are finished.
-   */
+  // need more test
   async work (): Promise<void> {
-    for (; this.executed < this.num; this.executed++) {
+    for (; this.gained < this.num;) {
       const { followerId, followerClassId, followerSupportDeckId } = await this.getFollower()
       const battle = await this.setupBattle(followerId, followerClassId, followerSupportDeckId)
       const result = await this.finishBattle(battle)
-      this.logger.debug(JSON.stringify(result, null, 2))
+      const items = result.response[0].success.resultDropInfos
+      for (const item of items) {
+        if (item.objectId === this.itemId) {
+          this.gained++
+        }
+      }
     }
   }
 
-  /**
-   * Get followerId, followerClassId, followerSupportDeckId
-   * @returns followerId, followerClassId, followerSupportDeckId
-   */
-  private async getFollower (): Promise<{
+  async getFollower (): Promise<{
     followerId: number
     followerClassId: number
     followerSupportDeckId: number
@@ -86,13 +75,6 @@ export class LoopExecuter extends BaseExecuter {
     return { followerId, followerClassId, followerSupportDeckId }
   }
 
-  /**
-   * Setup battle with followerId, followerClassId, followerSupportDeckId
-   * @param followerId
-   * @param followerClassId
-   * @param followerSupportDeckId
-   * @returns
-   */
   async setupBattle (followerId: number, followerClassId: number, followerSupportDeckId: number): Promise<StandardResponse> {
     let battleSetup = await this.user.battlesetup(this.questId, this.questPhase, this.deckId, followerId, followerClassId, followerSupportDeckId)
     const testAP = (detail: string | undefined): boolean => detail?.includes('AP') ?? false
@@ -113,11 +95,6 @@ export class LoopExecuter extends BaseExecuter {
     return battleSetup
   }
 
-  /**
-   * Finish battle with battleSetup
-   * @param battleSetup
-   * @returns
-   */
   async finishBattle (battleSetup: StandardResponse): Promise<StandardResponse> {
     const battleId = parseInt(battleSetup.cache.replaced.battle[0].id)
     this.logger.debug(`${this.user.userId} setup battle ${battleId}`)
