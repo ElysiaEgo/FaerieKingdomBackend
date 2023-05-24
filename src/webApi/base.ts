@@ -5,6 +5,11 @@ interface ApiHandle {
   handle: (ctx: ParameterizedContext) => any
 }
 
+/**
+ * @abstract
+ * @class BaseWebApi
+ * @implements {ApiHandle}
+ */
 export default abstract class BaseWebApi implements ApiHandle {
   protected db: PrismaClient
   constructor (db: PrismaClient) {
